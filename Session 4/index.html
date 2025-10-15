@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peta Kabupaten Sukabumi</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+
+<body>
+  <h2>Map of Sukabumi Regency</h2>
+  <div id="map"></div>
+
+  <script>
+    const center = [-6.9051, 106.8709];
+    const zoom = 13;
+
+    const map = L.map("map").setView(center, zoom);
+
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri — Source: Esri, Earthstar Geographics'
+    });
+
+    osm.addTo(map);
+
+    // a) Marker
+    const marker1 = L.marker([-6.9197, 106.9267,]).bindPopup("<b>Lapang Merdeka</b>");
+    const markers = L.layerGroup([marker1]);
+
+    // b) Polyline
+    const batasjalan = L.polyline([
+      [ -6.90193, 106.93794 ],
+      [ -6.92595, 106.93909 ],
+      [ -6.93860, 106.91936 ]
+    ], { color: 'blue' }).bindPopup("Batas Wilayah Sukabumi");
+
+    // c) Polygon 
+    const area = L.polygon([
+      [ -6.92045, 106.92662 ],
+      [ -6.91961, 106.92755 ],
+      [ -6.91842, 106.92628 ],
+      [ -6.91894, 106.92588 ],
+      [ -6.91919, 106.92621 ],
+      [ -6.91975, 106.92569 ],
+      [ -6.92045, 106.92662 ]
+    ], { color: 'green', fillOpacity: 0.3 }).bindPopup("Area Lapang Merdeka");
+
+    // d) Data Projek Sebelumnya
+    const geojsonLayer = L.geoJSON(null, {
+      onEachFeature: (feature, layer) => {
+        if (feature.properties && feature.properties.name) {
+          layer.bindPopup("<b>" + feature.properties.name + "</b>");
+        }
+      },
+      style: { color: "orange" }
+    });
+
+    fetch("map.geojson")
+      .then(res => res.json())
+      .then(data => geojsonLayer.addData(data))
+      .catch(err => console.error("Gagal memuat GeoJSON:", err));
+
+    const baseMaps = {
+      "OpenStreetMap": osm,
+      "Satellite (ESRI)": satellite
+    };
+
+    const overlayMaps = {
+      "Lapang Merdeka (Marker)": markers,
+      "Regional boundaries (Polyline)": batasjalan,
+      "Area Lapang Merdeka (Polygon)": area,
+      "Projek Kemarin": geojsonLayer
+    };
+
+    L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+    L.control.scale({ position: "bottomleft" }).addTo(map);
+  </script>
+</body>
+</html>
