@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peta Interaktif Kabupaten Sukabumi</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <h1>Peta Interaktif Kabupaten Sukabumi</h1>
+    <div id="map"></div>
+
+    <script>
+        const map = L.map('map').setView([-6.9051, 106.8709], 16);
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const iconKampus = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/128/167/167707.png',
+            iconSize: [34, 34],
+            iconAnchor: [17, 34],
+            popupAnchor: [0, -30]
+        });
+
+        const iconMasjid = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/128/10324/10324895.png',
+            iconSize: [34, 34],
+            iconAnchor: [17, 34],
+            popupAnchor: [0, -30]
+        });
+
+        const iconKosan = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/235/235861.png',
+            iconSize: [34, 34],
+            iconAnchor: [17, 34],
+            popupAnchor: [0, -30]
+        });
+
+        fetch("map.geojson")
+            .then(res => res.json())
+            .then(data => {
+                const markerGroup = L.layerGroup();
+
+                const pointLayer = L.geoJSON(data, {
+                    pointToLayer: function (feature, latlng) {
+                        let iconSelect;
+                        let popupContent = "";
+
+                        if (feature.properties.name.toLowerCase().includes("kampus")) {
+                            iconSelect = iconKampus;
+                            popupContent = `
+                <div style="text-align:center;">
+                  <h3>${feature.properties.name}</h3>
+                  <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT_jaHJsl7wHiR-dn9bJcBGV0xpY1L5Oz8BYg&s" alt="Kampus Nusa Putra">
+                    <p>
+                    Universitas Nusa Putra atau yang disingkat UNP adalah 
+                    sebuah Perguruan Tinggi Swasta yang berlokasi di Sukabumi, Jawa Barat, Indonesia 
+                    yang pengelolaannya berada di bawah naungan Yayasan Perguruan Nusa Putra Sukabumi.
+                    </p>
+                </div>`;
+                        } else if (feature.properties.name.toLowerCase().includes("masjid")) {
+                            iconSelect = iconMasjid;
+                            popupContent = `
+                <div style="text-align:center;">
+                  <h3>${feature.properties.name}</h3>
+                  <img src="https://i.ytimg.com/vi/HLyBXJacKNA/maxresdefault.jpg" alt="Masjid Cisaat">
+                    <p>
+                    Masjid Raya Raudhatul Irfan terletak di Jalan Raya Sukabumi Cisaat, 
+                    Kelurahan Cibolang, Kecamatan Cisaat, Kabupaten Sukabumi, Provinsi Jawa Barat
+                    </p>
+                </div>`;
+                        } else if (feature.properties.name.toLowerCase().includes("royan")) {
+                            iconSelect = iconKosan;
+                            popupContent = `
+                <div style="text-align:center;">
+                  <h3>${feature.properties.name}</h3>
+                  <img src="https://i.pinimg.com/originals/62/c9/84/62c984784dba3437226cadc8e6f62306.jpg" alt="Kosan Royan">
+                    <p>Kosan yang terletak di Perumahan Kenari Indah Makmur 2 Perum Kenari Indah Makmur 2 berlokasi di Sebrang SDN 3, 
+                    Jl. Babakan Tipar Assalafiyyah, Cimahi, Kec. Cicantayan, Kabupaten Sukabumi, Jawa Barat.
+                    </p>
+                </div>`;
+                        }
+
+                        if (iconSelect) {
+                            const marker = L.marker(latlng, { icon: iconSelect })
+                                .bindTooltip(feature.properties.name, { direction: "top" })
+                                .bindPopup(popupContent);
+                            markerGroup.addLayer(marker);
+                            return marker;
+                        } else {
+                            return L.marker(latlng);
+                        }
+                    }
+                });
+
+                const lineLayer = L.geoJSON(data, {
+                    filter: feature => feature.geometry.type === "LineString",
+                    style: {
+                        color: "blue",
+                        weight: 3,
+                        opacity: 0.8
+                    },
+                    onEachFeature: function (feature, layer) {
+                        const nama = feature.properties.name || "Jalur Jalan";
+                        const deskripsi = feature.properties.description || "Arah jalan dari Kosan Royan ke kampus Universitas Nusa Putra";
+
+                        // Tooltip dan Popup
+                        layer.bindTooltip(nama, { sticky: true });
+                        layer.bindPopup(`
+              <div style="text-align:center;">
+                <h3>${nama}</h3>
+                <p>${deskripsi}</p>
+              </div>
+            `);
+                        layer.on({
+                            mouseover: e => {
+                                e.target.setStyle({
+                                    color: "#ff7f00",
+                                    weight: 5
+                                });
+                            },
+                            mouseout: e => {
+                                lineLayer.resetStyle(e.target);
+                            },
+                            click: e => e.target.openPopup()
+                        });
+                    }
+                });
+
+                markerGroup.addLayer(pointLayer);
+                markerGroup.addLayer(lineLayer);
+                markerGroup.addTo(map);
+                map.fitBounds(markerGroup.getBounds());
+            })
+            .catch(err => console.error("Gagal memuat map.geojson:", err));
+    </script>
+</body>
+</html>
